@@ -147,29 +147,49 @@ impl RaffleDB for SQLiteInstance {
     fn stop_raffle(&mut self, num_winners: usize) -> RaffleResult<Vec<Partecipant>> {
         let ongoing_raffle = self.get_ongoing_raffle();
         if let Some(raffle) = ongoing_raffle {
-            let mut statement = self.connection.prepare_cached("
-            UPDATE RAFFLE
-            SET ended_when = ?1
-            WHERE
-                raffle_id == ?2
-            ").unwrap();
-            let result = statement.execute(params!(timestamp_now(), raffle.raffle_id));
-            match result {
-            Err(e) => Err(format!("{}", e)),
-            Ok(rows) =>
-                if rows > 0 {
-                    let mut partecipants = Vec::from_iter(self.get_partecipants().into_iter());
-                    partecipants
-                        .sort_by(|a, b|  b.priority.cmp(&a.priority));
-                    Ok(Vec::from_iter(partecipants
-                        .iter()
-                        .take(num_winners)
-                        .map(|p| p.clone())
-                    ))
-                } else {
-                    Err("No running raffle with this id".to_owned())
+            let partecipants_set = self.get_partecipants();
+            let transaction = self.connection.transaction().unwrap();
+            let _ = transaction.execute_batch("
+                DELETE FROM REFERRALS;
+                DELETE FROM USED_CODES;
+                DELETE FROM REDEEMABLE_CODES;
+                DELETE FROM PARTECIPANTS;
+            ")
+            .unwrap();
+
+            let closed_raffles = {
+                let mut statement = transaction.prepare_cached("
+                UPDATE RAFFLE
+                SET ended_when = ?1
+                WHERE
+                    raffle_id == ?2
+                ").unwrap();
+                statement.execute(params!(timestamp_now(), raffle.raffle_id)).unwrap()
+            };
+            if closed_raffles > 0 {
+                let mut partecipants = Vec::from_iter(partecipants_set.into_iter());
+                partecipants
+                    .sort_by(|a, b|  b.priority.cmp(&a.priority));
+                let winners = Vec::from_iter(partecipants
+                    .iter()
+                    .take(num_winners)
+                    .map(|p| p.clone()
+                ));
+                for (pos, winner) in winners.iter().enumerate() {
+                    let mut winner_statement = transaction.
+                        prepare_cached("
+                            INSERT INTO RAFFLE_WINNERS(raffle_id, winner_id, position)
+                            VALUES (?1, ?2, ?3)")
+                            .unwrap();
+                    winner_statement.execute(params!(raffle.raffle_id, winner.user_id, pos))
+                    .unwrap();
                 }
-            }   
+                transaction.commit().unwrap();
+                Ok(winners)
+            } else {
+                transaction.rollback().unwrap();
+                Err("No running raffle with this id".to_owned())
+            }
         } else {
             Err("No ongoing raffle".to_owned())
         }

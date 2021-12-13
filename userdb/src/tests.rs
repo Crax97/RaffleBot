@@ -52,7 +52,7 @@ fn test_db_raffle_execution() {
     for i in 10..20 {
         db.register_partecipant(i, Some(2));
     }
-    for i in 11..21 {
+    for i in 21..30 {
         db.register_partecipant(i, None);
     }
 
