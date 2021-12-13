@@ -76,8 +76,7 @@ impl PartialEq for Raffle {
 #[derive(Debug, PartialEq)]
 pub enum RegistrationStatus {
     Registered(Partecipant),
-    NotRegistered,
-    GenericError(String)
+    NotRegistered
 }
 
 #[derive(Debug, PartialEq)]
@@ -104,8 +103,7 @@ pub enum CodeRedeemalResult {
 #[derive(Debug, PartialEq)]
 pub enum RaffleCreationResult {
     Success(Raffle),
-    OngoingRaffleExists(Raffle),
-    Generic(String) // The String is the reason why the raffle failed
+    OngoingRaffleExists(Raffle)
 }
 
 impl RaffleCreationResult {

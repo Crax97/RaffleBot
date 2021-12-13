@@ -238,7 +238,7 @@ impl RaffleDB for SQLiteInstance {
                         "INSERT INTO REFERRALS (referrer_id, referee_id)
                         VALUES (?1, ?2)"
                     ).unwrap();
-                    let insertion_result = referral_query.execute(params!(referrer_id, user_id))?;
+                    referral_query.execute(params!(referrer_id, user_id))?;
                 }
             }
             Ok(RegistrationStatus::Registered(self.get_partecipant(user_id)?.unwrap()))
@@ -275,8 +275,7 @@ impl RaffleDB for SQLiteInstance {
         |row| Ok(row.get_unwrap(0)));
         match resulting_rows {
             Ok(referrer_id) => Ok(Some(referrer_id)),
-            Err(QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(Box::new(e))
+            Err(_) => Ok(None),
         }
     }
     // raffle codes functions
@@ -302,7 +301,7 @@ impl RaffleDB for SQLiteInstance {
             .prepare_cached(
                 "INSERT INTO REDEEMABLE_CODES (code, remaining_uses, generated_when)
                 VALUES (?1, ?2, ?3)").unwrap();
-        let result =  query.execute(params!(new_code, numeric_usages, timestamp_now()))?;
+        query.execute(params!(new_code, numeric_usages, timestamp_now()))?;
         Ok(self.get_raffle_code_by_name(new_code.as_str())?.unwrap())
     }
     fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> RaffleResult<bool> {
@@ -353,14 +352,14 @@ impl RaffleDB for SQLiteInstance {
                             AND
                             remaining_uses > 0")
                         .unwrap();
-                    let n = update_codes_query.execute(params!(code_id)).unwrap();
+                    update_codes_query.execute(params!(code_id)).unwrap();
                 }
                 {
                     let mut delete_expired_codes_query = redeem_transaction.prepare_cached("
                     DELETE FROM REDEEMABLE_CODES
                     WHERE remaining_uses = 0
                     ").unwrap();
-                    let n = delete_expired_codes_query.execute(params!()).unwrap();
+                    delete_expired_codes_query.execute(params!()).unwrap();
                 }
                 redeem_transaction.commit().unwrap();
                 Ok(CodeRedeemalResult::Redeemed)
@@ -408,8 +407,7 @@ impl RaffleDB for SQLiteInstance {
             |row| Ok(raffle_code_from_row(row)));
         match found_codes {
             Ok(code) => Ok(Some(code)),
-            Err(QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(Box::new(e)) 
+            Err(_) => Ok(None),
         }
     }
     fn get_raffle_code_by_name(&self, name: &str) -> RaffleResult<Option<RedeemableCode>> {
@@ -421,8 +419,7 @@ impl RaffleDB for SQLiteInstance {
             |row| Ok(raffle_code_from_row(row)));
         match found_codes {
             Ok(code) => Ok(Some(code)),
-            Err(QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(Box::new(e)) 
+            Err(_) => Ok(None)
         }
     }
 
