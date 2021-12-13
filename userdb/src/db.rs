@@ -4,7 +4,7 @@ pub type UserID = i64;
 pub type RaffleID = u64;
 pub type Timestamp = u64;
 pub type RedeemableCodeId = u64;
-pub type Result<T> = std::result::Result<T, String>;
+pub type RaffleResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Debug, Eq, Clone)]
 pub struct Partecipant {
@@ -76,7 +76,8 @@ impl PartialEq for Raffle {
 #[derive(Debug, PartialEq)]
 pub enum RegistrationStatus {
     Registered(Partecipant),
-    NotRegistered
+    NotRegistered,
+    GenericError(String)
 }
 
 #[derive(Debug, PartialEq)]
@@ -104,7 +105,7 @@ pub enum CodeRedeemalResult {
 pub enum RaffleCreationResult {
     Success(Raffle),
     OngoingRaffleExists(Raffle),
-    Other(String) // The String is the reason why the raffle failed
+    Generic(String) // The String is the reason why the raffle failed
 }
 
 impl RaffleCreationResult {
@@ -117,33 +118,33 @@ impl RaffleCreationResult {
 }
 
 pub trait RaffleDB {
-    fn close(self) -> ();
+    fn close(self) -> RaffleResult<()>;
     
     // raffle functions
-    fn create_raffle(&mut self, name: &str, description: &str) -> RaffleCreationResult;
-    fn get_ongoing_raffle(&self) -> Option<Raffle>;
-    fn stop_raffle(&mut self, num_winners: usize) -> Result<Vec<Partecipant>>;
+    fn create_raffle(&mut self, name: &str, description: &str) -> RaffleResult<RaffleCreationResult>;
+    fn get_ongoing_raffle(&self) -> RaffleResult<Option<Raffle>>;
+    fn stop_raffle(&mut self, num_winners: usize) -> RaffleResult<Vec<Partecipant>>;
 
     // user functions
-    fn get_partecipants(&self) -> HashSet<Partecipant>;
-    fn get_partecipant(&self, user_id: UserID) -> Option<Partecipant>;
-    fn is_partecipant(&self, user_id: UserID) -> bool;
-    fn register_partecipant(&mut self, user_id: UserID, referrer: Option<UserID>) -> RegistrationStatus;
-    fn remove_partecipant(&mut self, user_id: UserID) -> Result<bool>;
-    fn get_registration_status(&self, user_id: UserID) -> RegistrationStatus;
-    fn get_referees_of_user(&self, user_id: UserID) -> Vec<UserID>;
-    fn get_referrer_of_user(&self, user_id: UserID) -> Option<UserID>;
+    fn get_partecipants(&self) -> RaffleResult<HashSet<Partecipant>>;
+    fn get_partecipant(&self, user_id: UserID) -> RaffleResult<Option<Partecipant>>;
+    fn is_partecipant(&self, user_id: UserID) -> RaffleResult<bool>;
+    fn register_partecipant(&mut self, user_id: UserID, referrer: Option<UserID>) -> RaffleResult<RegistrationStatus>;
+    fn remove_partecipant(&mut self, user_id: UserID) -> RaffleResult<bool>;
+    fn get_registration_status(&self, user_id: UserID) -> RaffleResult<RegistrationStatus>;
+    fn get_referees_of_user(&self, user_id: UserID) -> RaffleResult<Vec<UserID>>;
+    fn get_referrer_of_user(&self, user_id: UserID) -> RaffleResult<Option<UserID>>;
 
     // raffle codes functions
-    fn generate_raffle_code(&mut self, use_count: CodeUseCount) -> Result<RedeemableCode>;
-    fn get_raffle_codes(&self) -> HashSet<RedeemableCode>;
-    fn get_raffle_codes_used_by_user(&self, user_id: UserID) -> HashSet<RedeemableCodeId>;
-    fn get_raffle_code_by_name(&self, name: &str) -> Option<RedeemableCode>;
-    fn get_raffle_code_by_id(&self, code: RedeemableCodeId) -> Option<RedeemableCode>;
-    fn partecipant_has_redeemed_code(&self, partecipant_id: UserID, code_id: RedeemableCodeId) -> bool;
-    fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> bool;
+    fn generate_raffle_code(&mut self, use_count: CodeUseCount) -> RaffleResult<RedeemableCode>;
+    fn get_raffle_codes(&self) -> RaffleResult<HashSet<RedeemableCode>>;
+    fn get_raffle_codes_used_by_user(&self, user_id: UserID) -> RaffleResult<HashSet<RedeemableCodeId>>;
+    fn get_raffle_code_by_name(&self, name: &str) -> RaffleResult<Option<RedeemableCode>>;
+    fn get_raffle_code_by_id(&self, code: RedeemableCodeId) -> RaffleResult<Option<RedeemableCode>>;
+    fn partecipant_has_redeemed_code(&self, partecipant_id: UserID, code_id: RedeemableCodeId) -> RaffleResult<bool>;
+    fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> RaffleResult<bool>;
 
-    fn validate_code(&self, code: &str) -> CodeValidation;
-    fn redeem_code(&mut self, user_id: UserID, code_id: RedeemableCodeId) -> CodeRedeemalResult;
+    fn validate_code(&self, code: &str) -> RaffleResult<CodeValidation>;
+    fn redeem_code(&mut self, user_id: UserID, code_id: RedeemableCodeId) -> RaffleResult<CodeRedeemalResult>;
     
 }
