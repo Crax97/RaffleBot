@@ -1,0 +1,64 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'rafflebot'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=rafflebot",
+                    "--package=rafflebot"
+                ],
+                "filter": {
+                    "name": "rafflebot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug tests 'userdb'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--lib=userdb",
+                    "--package=userdb"
+                ],
+                "filter": {
+                    "name": "userdb",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'rafflebot'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=rafflebot",
+                    "--package=rafflebot"
+                ],
+                "filter": {
+                    "name": "rafflebot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
