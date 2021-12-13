@@ -14,23 +14,17 @@ fn timestamp_now() -> Timestamp {
 }
 
 fn setup_connection(connection: &mut Connection) {
-    connection.execute("
+    connection.execute_batch("
     CREATE TABLE IF NOT EXISTS PARTECIPANTS (
         user_id INTEGER NOT NULL PRIMARY KEY,
         joined_when INTEGER NOT NULL
     );
-    ", params!()).unwrap();
-    
-    connection.execute("
     CREATE TABLE IF NOT EXISTS REDEEMABLE_CODES (
         code_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         code TEXT NOT NULL UNIQUE,
         remaining_uses INTEGER NOT NULL,
         generated_when INTEGER NOT NULL
     );
-    ", params!()).unwrap();
-    
-    connection.execute("
     CREATE TABLE IF NOT EXISTS USED_CODES (
         user_id INTEGER NOT NULL,
         code_id INTEGER NOT NULL,
@@ -38,19 +32,13 @@ fn setup_connection(connection: &mut Connection) {
         FOREIGN KEY (user_id) REFERENCES PARTECIPANTS(user_id),
         FOREIGN KEY (code_id) REFERENCES REDEEMABLE_CODES(code_id)
     );
-    ", params!()).unwrap();
-    
-    // The referrer is the user that invited the referee in the raffle
-    connection.execute("
+    --The referrer is the user that invited the referee in the raffle
     CREATE TABLE IF NOT EXISTS REFERRALS (
         referrer_id INTEGER NOT NULL,
         referee_id INTEGER NOT NULL,
         FOREIGN KEY(referrer_id) REFERENCES PARTECIPANTS(user_id),
         FOREIGN KEY(referee_id) REFERENCES PARTECIPANTS(user_id)
     );
-    ", params!()).unwrap();
-    
-    connection.execute("
     CREATE TABLE IF NOT EXISTS RAFFLE (
         raffle_id INTEGER PRIMARY KEY AUTOINCREMENT,
         raffle_name TEXT NOT NULL,
@@ -58,16 +46,13 @@ fn setup_connection(connection: &mut Connection) {
         started_when INTEGER NOT NULL,
         ended_when INTEGER
     );
-    ", params!()).unwrap();
-    
-    connection.execute("
     CREATE TABLE IF NOT EXISTS RAFFLE_WINNERS (
         raffle_id INTEGER,
         winner_id INTEGER,
         position INTEGER,
         FOREIGN KEY (raffle_id) REFERENCES RAFFLE(raffle_id)
     );
-    ", params!()).unwrap();
+    ").unwrap();
 }
 fn raffle_from_row(row: &rusqlite::Row) -> Raffle {
     Raffle {
