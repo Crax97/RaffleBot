@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 
-rusqlite="0.26.3"
+rusqlite="0.25.4"
 rand="0.8.4"

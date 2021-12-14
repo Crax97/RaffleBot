@@ -1,8 +1,8 @@
 extern crate rusqlite;
 extern crate rand;
 
-mod db_instances;
-mod db;
+pub mod db_instances;
+pub mod db;
 
 #[cfg(test)]
 mod tests;

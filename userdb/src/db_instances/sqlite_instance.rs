@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::ops::Add;
 use rand::Rng;
-use rusqlite::{Connection, CachedStatement, Result, params};
+use rusqlite::{Connection, Result, params};
 use crate::db::RaffleResult;
 use crate::db::*;
 
