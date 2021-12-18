@@ -33,7 +33,7 @@ pub async fn get_points_cdm(
             }
         },
         Err(e) => {
-            on_error(e, &ctx.update, &ctx.requester, "on points");
+            on_error(e, &ctx.update, &ctx.requester, "on points").await;
             return next(Dialogue::Begin(NoData));
         }
     };

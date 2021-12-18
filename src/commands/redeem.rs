@@ -40,7 +40,7 @@ pub async fn generate_code_cmd(
             ctx.answer(code.code).await?;
         },
         Err(e) => {
-            on_error(e, &ctx.update, &ctx.requester, "on raffle code reation");
+            on_error(e, &ctx.update, &ctx.requester, "on raffle code reation").await;
         }
     }
     next(Dialogue::Begin(NoData))

@@ -54,7 +54,7 @@ pub async fn create_raffle(ctx: Context)
     };
     let creation_status = match creation_status {
         Err(e) => {
-            on_error(e, &ctx.update, &ctx.requester, "on raffle creation: begin");
+            on_error(e, &ctx.update, &ctx.requester, "on raffle creation: begin").await;
             return next(Dialogue::Begin(NoData));
         },
         Ok(status) => status
@@ -102,7 +102,7 @@ async fn raffle_get_desc_message(
         match raffle_db.create_raffle(state.title.as_str(), message_serialized.as_str()) {
             Ok(status) => status,
             Err(e) => {
-                on_error(e, &cx.update, &cx.requester, "on raffle: await raffle desc");
+                on_error(e, &cx.update, &cx.requester, "on raffle: await raffle desc").await;
                 return next(Dialogue::Begin(NoData));
             }
         }
@@ -147,7 +147,7 @@ pub async fn end_raffle(ctx: Context)
         };
         let winners = match winners {
             Err(e) => {
-                on_error(e, &ctx.update, &ctx.requester, "on raffle end");
+                on_error(e, &ctx.update, &ctx.requester, "on raffle end").await;
                 return next(Dialogue::Begin(NoData));
             },
             Ok(vector) => vector

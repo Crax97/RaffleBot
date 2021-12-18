@@ -56,7 +56,7 @@ pub async fn start_cmd(
         let ongoing_raffle = match ongoing_raffle {
             Ok(thing) => thing,
             Err(e) => {
-                on_error(e, &cx.update, &cx.requester, "on start: get ongoing raffle");
+                on_error(e, &cx.update, &cx.requester, "on start: get ongoing raffle").await;
                 return next(Dialogue::Begin(NoData));
             }
         };
@@ -151,7 +151,7 @@ Type /start to see what you can do as an admin")
     let is_partecipant = match is_partecipant {
             Ok(result) => result, 
             Err(e) => {
-                on_error(e, &cx.update, &cx.requester, "on registration");
+                on_error(e, &cx.update, &cx.requester, "on registration").await;
                 return next(Dialogue::Begin(NoData));
             }
         };
@@ -175,7 +175,7 @@ As a partecipant, you can issue the following commands:
                 cx.reply_to("Sorry, there are no ongoing raffles at the moment. Please try again later!").await?;
             }
             Err(e) => {
-                on_error(e, &cx.update, &cx.requester, "on registration");
+                on_error(e, &cx.update, &cx.requester, "on registration").await;
             },
             _ => {
                 let me = cx.requester.get_me().await?.user.username.expect("Could not fetch the username of this bot!");
@@ -239,7 +239,7 @@ If you do decide to come back, remember that we will keep all your points.")
                     .await?;
                 }
                 Err(e) => {
-                    on_error(e, &cx.update, &cx.requester, "on leave");
+                    on_error(e, &cx.update, &cx.requester, "on leave").await;
                 }
             }
             next(Dialogue::Begin(NoData))

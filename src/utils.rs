@@ -74,9 +74,9 @@ pub async fn is_member_of_target_group(user_id: UserID, bot: &AutoSend<Bot>) -> 
     }
 }
 
-pub async fn on_error(err: dyn Error, msg: &Message, bot: &AutoSend<Bot>, user_err: &str) {
+pub async fn on_error<'a>(err: Box<dyn Error + Send + Sync + 'a>, msg: &Message, bot: &AutoSend<Bot>, user_err: &str) {
     // Inform the user that an error occurred, ONLY IN PRIVATE CHAT (to avoid possible spamming)
-    let chat = msg.chat;
+    let chat = &msg.chat;
     if chat.is_private() {
         let _ = bot.send_message(chat.id, "Sorry! While processing your message an error has occurred, i'm signaling it to the bot manager.")
         .await;
@@ -86,16 +86,16 @@ pub async fn on_error(err: dyn Error, msg: &Message, bot: &AutoSend<Bot>, user_e
 <b>An error occurred: {}</b>
 
 Error details:
-{}
+{:?}
 
 Message that caused the error:
-{}
+{:?}
 
-", user_err, msg, err.to_string());
+", user_err, msg, err);
     let _ = bot.send_message(CONFIG.manager, &error_message).await;
     log::error!("
 ---- ERROR -------
 {}
 ---- ERROR END ---
-", error_message)
+", error_message);
 }
