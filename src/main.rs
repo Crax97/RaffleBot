@@ -32,7 +32,7 @@ lazy_static! {
 }
 
 
-pub async fn handle_dialogue(ctx: UpdateWithCx<AutoSend<Bot>, Message>, dialogue: Dialogue) 
+pub async fn handle_dialogue(ctx: UpdateWithCx<RaffleBot, Message>, dialogue: Dialogue) 
     -> TransitionOut<Dialogue> {
     let text =match ctx.update.text() {
         Some(s) => Some(s.to_owned()),
@@ -58,6 +58,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     teloxide::enable_logging!();
     
     let bot = Bot::from_env()
+        .cache_me()
         .auto_send();
     let me = bot
         .get_me()

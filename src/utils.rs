@@ -1,9 +1,11 @@
 use std::{io::BufReader, collections::HashSet, error::Error};
 
 use serde::Deserialize;
-use teloxide::{types::{Chat, Message}, Bot, prelude::Requester, adaptors::AutoSend, ApiError, RequestError};
+use teloxide::{types::{Chat, Message}, prelude::Requester, ApiError, RequestError};
 use userdb::db::UserID;
 use lazy_static::lazy_static;
+
+use crate::commands::RaffleBot;
 
 #[derive(Deserialize)]
 struct Config {
@@ -39,7 +41,7 @@ pub fn is_chat_with_manager(user_id: UserID, chat: &Chat) -> bool {
     is_manager(user_id) && chat.is_private()
 }
 
-pub async fn get_user_tag(user_id: UserID, chat_id: i64, bot: &AutoSend<Bot>) -> Result<String, RequestError> {
+pub async fn get_user_tag(user_id: UserID, chat_id: i64, bot: &RaffleBot) -> Result<String, RequestError> {
     let user = bot.get_chat_member(chat_id, user_id).await?.user;
     Ok(match user.username {
         Some(username) => format!("@{}", username),
@@ -47,7 +49,7 @@ pub async fn get_user_tag(user_id: UserID, chat_id: i64, bot: &AutoSend<Bot>) ->
     })
 }
 
-pub async fn is_member_of_target_group(user_id: UserID, bot: &AutoSend<Bot>) -> Result<bool, RequestError> {
+pub async fn is_member_of_target_group(user_id: UserID, bot: &RaffleBot) -> Result<bool, RequestError> {
     match bot.get_chat_member(CONFIG.target_chat, user_id)
         .await
     {
@@ -74,7 +76,7 @@ pub async fn is_member_of_target_group(user_id: UserID, bot: &AutoSend<Bot>) -> 
     }
 }
 
-pub async fn on_error<'a>(err: Box<dyn Error + Send + Sync + 'a>, msg: &Message, bot: &AutoSend<Bot>, user_err: &str) {
+pub async fn on_error<'a>(err: Box<dyn Error + Send + Sync + 'a>, msg: &Message, bot: &RaffleBot, user_err: &str) {
     // Inform the user that an error occurred, ONLY IN PRIVATE CHAT (to avoid possible spamming)
     let chat = &msg.chat;
     if chat.is_private() {

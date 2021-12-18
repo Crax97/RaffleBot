@@ -8,7 +8,7 @@ use crate::commands::admin::RaffleDescription;
 use crate::commands::Context;
 use crate::utils::*;
 
-use super::dialogues::*;
+use super::{dialogues::*, RaffleBot};
 
 #[derive(Serialize, Deserialize)]
 pub struct StartData {
@@ -109,7 +109,7 @@ async fn clone_message_into_chat(bot: &AutoSend<Bot>, message: &Message, target_
     };
 }
 */
-async fn send_raffle_desc_into_chat(bot: &AutoSend<Bot>, message: RaffleDescription, target_chat: i64) {
+async fn send_raffle_desc_into_chat(bot: &RaffleBot, message: RaffleDescription, target_chat: i64) {
     let _ = match message {
         RaffleDescription::Text(text_string) => { bot.send_message(target_chat, text_string).await },
         RaffleDescription::Photo {file_id, caption} => {
@@ -214,7 +214,7 @@ pub struct LeaveState;
 #[teloxide(subtransition)]
 async fn leave_got_answer(
     _state: LeaveState,
-    cx: TransitionIn<AutoSend<Bot>>,
+    cx: TransitionIn<RaffleBot>,
     _ans: String) -> TransitionOut<Dialogue> {
     let user_id = match cx.update.from() {
         Some(u) => u.id,

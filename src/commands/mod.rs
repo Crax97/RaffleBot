@@ -8,11 +8,13 @@ use start::*;
 use admin::*;
 use redeem::*;
 use points::*;
-use teloxide::{prelude::*, utils::command::BotCommand, dispatching::dialogue::{SqliteStorage, serializer::Json, Storage}};
+use teloxide::{prelude::*, utils::command::BotCommand, dispatching::dialogue::{SqliteStorage, serializer::Json, Storage}, adaptors::CacheMe};
 
-pub type Context = UpdateWithCx<AutoSend<Bot>, Message>;
+pub type RaffleBot = AutoSend<CacheMe<Bot>>;
+pub type Context = UpdateWithCx<RaffleBot, Message>;
+
 type StorageError = <SqliteStorage<Json> as Storage<Dialogue>>::Error;
-pub type RaffleDialogueContext = DialogueWithCx<AutoSend<Bot>, Message, Dialogue, StorageError>;
+pub type RaffleDialogueContext = DialogueWithCx<RaffleBot, Message, Dialogue, StorageError>;
 
 pub use dialogues::Dialogue;
 

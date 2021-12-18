@@ -3,7 +3,7 @@ use std::ops::Add;
 use serde::{Deserialize, Serialize};
 use teloxide::{prelude::*, RequestError};
 use userdb::db::{RaffleDB, Partecipant};
-use super::dialogues::*;
+use super::{dialogues::*, RaffleBot};
 use crate::commands::Context;
 use crate::utils::*;
 
@@ -71,7 +71,7 @@ pub async fn create_raffle(ctx: Context)
 #[teloxide(subtransition)]
 async fn raffle_get_title(
     state: AwaitingRaffleTitleState,
-    cx: TransitionIn<AutoSend<Bot>>,
+    cx: TransitionIn<RaffleBot>,
     _ans: String
 ) -> TransitionOut<Dialogue> {
     match cx.update.text() {
@@ -92,7 +92,7 @@ async fn raffle_get_title(
 #[teloxide(subtransition)]
 async fn raffle_get_desc_message(
     state: AwaitingRaffleMessageState,
-    cx: TransitionIn<AutoSend<Bot>>,
+    cx: TransitionIn<RaffleBot>,
     _ans: String
 ) -> TransitionOut<Dialogue> {
     let message_serialized = serde_json::to_string(&RaffleDescription::from_message(&cx.update))
@@ -119,7 +119,7 @@ async fn raffle_get_desc_message(
     exit()
 }
 
-async fn send_winner_notification(place: usize, winner: &Partecipant, bot: &AutoSend<Bot>) -> Result<(), RequestError> {
+async fn send_winner_notification(place: usize, winner: &Partecipant, bot: &RaffleBot) -> Result<(), RequestError> {
     let msg = format!("Congraulations! You placed {} in the current raffle, with a toal of {} points, contact the raffle manager for your prize.",
     place,
     winner.priority);

@@ -1,12 +1,10 @@
 use serde::{Serialize, Deserialize};
 use teloxide::{
     prelude::*,
-    adaptors::AutoSend,
-    Bot,
-    macros::{Transition}
+    macros::Transition
 };
 use userdb::db::UserID;
-use crate::utils::*;
+use crate::{utils::*, commands::RaffleBot};
 use crate::commands::start::*;
 
 #[derive(Transition, Serialize, Deserialize, derive_more::From)]
@@ -48,7 +46,7 @@ impl Default for Dialogue {
 #[teloxide(subtransition)]
 async fn no_data(
     state: NoData,
-    cx: TransitionIn<AutoSend<Bot>>,
+    cx: TransitionIn<RaffleBot>,
     _ans: String
 ) -> TransitionOut<Dialogue> {
     cx.answer("Is this some text?").await?;
@@ -58,7 +56,7 @@ async fn no_data(
 #[teloxide(subtransition)]
 async fn registered(
     state: RegistrationState,
-    cx: TransitionIn<AutoSend<Bot>>,
+    cx: TransitionIn<RaffleBot>,
     _ans: String
 ) -> TransitionOut<Dialogue> {
     cx.answer("You are in the current raffle, please use the control keyboard, if you can't access it type /keyboard").await?;
@@ -68,7 +66,7 @@ async fn registered(
 #[teloxide(subtransition)]
 async fn await_join_channel_msg(
     state: AwaitingJoinChannelState,
-    cx: TransitionIn<AutoSend<Bot>>,
+    cx: TransitionIn<RaffleBot>,
     _ans: String
 ) -> TransitionOut<Dialogue> {
     let user_id = 0;
