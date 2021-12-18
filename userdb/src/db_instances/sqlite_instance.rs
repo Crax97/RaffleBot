@@ -28,16 +28,12 @@ fn setup_connection(connection: &mut Connection) {
     CREATE TABLE IF NOT EXISTS USED_CODES (
         user_id INTEGER NOT NULL,
         code_id INTEGER NOT NULL,
-        used_when INTEGER NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES PARTECIPANTS(user_id),
-        FOREIGN KEY (code_id) REFERENCES REDEEMABLE_CODES(code_id)
+        used_when INTEGER NOT NULL
     );
     --The referrer is the user that invited the referee in the raffle
     CREATE TABLE IF NOT EXISTS REFERRALS (
         referrer_id INTEGER NOT NULL,
-        referee_id INTEGER NOT NULL,
-        FOREIGN KEY(referrer_id) REFERENCES PARTECIPANTS(user_id),
-        FOREIGN KEY(referee_id) REFERENCES PARTECIPANTS(user_id)
+        referee_id INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS RAFFLE (
         raffle_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -223,9 +219,14 @@ impl RaffleDB for SQLiteInstance {
         })
     }
     fn register_partecipant(&mut self, user_id: UserID, referrer: Option<UserID>) -> RaffleResult<RegistrationStatus>{
+        let raffle = self.get_ongoing_raffle().unwrap();
+        if raffle.is_none() {
+            return Ok(RegistrationStatus::NoRaffleOngoing);
+        }
         let mut register_query = self.connection.prepare_cached(
             "INSERT INTO PARTECIPANTS (user_id, joined_when) 
-            VALUES (?1, ?2)").unwrap();
+            SELECT ?1, ?2 WHERE ?1 NOT IN
+            (SELECT user_id from PARTECIPANTS)").unwrap();
         let now = timestamp_now();
         let inserted_rows = register_query.execute(params!(user_id, now))?;
         if inserted_rows == 0 {
@@ -236,7 +237,10 @@ impl RaffleDB for SQLiteInstance {
                 if self.is_partecipant(referrer_id)? {
                     let mut referral_query = self.connection.prepare_cached(
                         "INSERT INTO REFERRALS (referrer_id, referee_id)
-                        VALUES (?1, ?2)"
+                        SELECT ?1, ?2 WHERE 
+                        ?1 != ?2 -- avoid self-referral
+                        AND (?1, ?2) NOT IN (SELECT referrer_id, referee_id from REFERRALS) -- avoid people leaving and then re-referring the same user
+                        AND (?1) IN (SELECT user_id FROM PARTECIPANTS) AND (?2) IN (SELECT user_id FROM PARTECIPANTS) -- TO OPTIMIZE ensure referee and referrer are valid partecipants"
                     ).unwrap();
                     referral_query.execute(params!(referrer_id, user_id))?;
                 }
@@ -304,13 +308,14 @@ impl RaffleDB for SQLiteInstance {
         query.execute(params!(new_code, numeric_usages, timestamp_now()))?;
         Ok(self.get_raffle_code_by_name(new_code.as_str())?.unwrap())
     }
-    fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> RaffleResult<bool> {
+    fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> RaffleResult<()> {
         let mut query = self.connection
         .prepare_cached(
-            "DELETE FROM REDEEMABLE_CODES
+            "UPDATE REDEEMABLE_CODES
+            SET remaining_uses = 0
             WHERE code_id == ?1").unwrap();
-        let result = query.execute(params!(code))?;
-        Ok(result > 0)
+        let _ = query.execute(params!(code))?;
+        Ok(())
     }
 
     fn validate_code(&self, code: &str) -> RaffleResult<CodeValidation> {
@@ -334,6 +339,7 @@ impl RaffleDB for SQLiteInstance {
                 let redeem_transaction = self.connection
                     .transaction()?;
                 {
+                    println!("CODE {} USER {}", code_id, user_id);
                     let mut insert_query =
                     redeem_transaction.prepare_cached("INSERT INTO USED_CODES (user_id, code_id, used_when)
                         VALUES (?1, ?2, ?3)").unwrap();
@@ -353,13 +359,6 @@ impl RaffleDB for SQLiteInstance {
                             remaining_uses > 0")
                         .unwrap();
                     update_codes_query.execute(params!(code_id)).unwrap();
-                }
-                {
-                    let mut delete_expired_codes_query = redeem_transaction.prepare_cached("
-                    DELETE FROM REDEEMABLE_CODES
-                    WHERE remaining_uses = 0
-                    ").unwrap();
-                    delete_expired_codes_query.execute(params!()).unwrap();
                 }
                 redeem_transaction.commit().unwrap();
                 Ok(CodeRedeemalResult::Redeemed)
@@ -401,7 +400,8 @@ impl RaffleDB for SQLiteInstance {
     fn get_raffle_code_by_id(&self, code: RedeemableCodeId) -> RaffleResult<Option<RedeemableCode>> {
         let mut raffle_code_query = self.connection.prepare_cached(
             "SELECT * FROM REDEEMABLE_CODES
-                WHERE code_id == ?1").unwrap();
+                WHERE code_id == ?1 
+                AND (remaining_uses > 0 OR remaining_uses == -1)").unwrap();
         let found_codes = raffle_code_query.query_row(
             params!(code),
             |row| Ok(raffle_code_from_row(row)));
@@ -413,7 +413,8 @@ impl RaffleDB for SQLiteInstance {
     fn get_raffle_code_by_name(&self, name: &str) -> RaffleResult<Option<RedeemableCode>> {
         let mut raffle_code_query = self.connection.prepare_cached(
             "SELECT * FROM REDEEMABLE_CODES
-                WHERE code == ?1").unwrap();
+                WHERE code == ?1 
+                AND (remaining_uses > 0 OR remaining_uses == -1)").unwrap();
         let found_codes = raffle_code_query.query_row(
             params!(name),
             |row| Ok(raffle_code_from_row(row)));

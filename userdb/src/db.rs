@@ -4,7 +4,7 @@ pub type UserID = i64;
 pub type RaffleID = u64;
 pub type Timestamp = u64;
 pub type RedeemableCodeId = u64;
-pub type RaffleResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub type RaffleResult<T> = std::result::Result<T, Box<dyn std::error::Error + Sync + Send>>;
 
 #[derive(Debug, Eq, Clone)]
 pub struct Partecipant {
@@ -76,6 +76,7 @@ impl PartialEq for Raffle {
 #[derive(Debug, PartialEq)]
 pub enum RegistrationStatus {
     Registered(Partecipant),
+    NoRaffleOngoing,
     NotRegistered
 }
 
@@ -140,7 +141,7 @@ pub trait RaffleDB {
     fn get_raffle_code_by_name(&self, name: &str) -> RaffleResult<Option<RedeemableCode>>;
     fn get_raffle_code_by_id(&self, code: RedeemableCodeId) -> RaffleResult<Option<RedeemableCode>>;
     fn partecipant_has_redeemed_code(&self, partecipant_id: UserID, code_id: RedeemableCodeId) -> RaffleResult<bool>;
-    fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> RaffleResult<bool>;
+    fn delete_raffle_code(&mut self, code: RedeemableCodeId) -> RaffleResult<()>;
 
     fn validate_code(&self, code: &str) -> RaffleResult<CodeValidation>;
     fn redeem_code(&mut self, user_id: UserID, code_id: RedeemableCodeId) -> RaffleResult<CodeRedeemalResult>;

@@ -5,6 +5,7 @@ use crate::db::*;
 fn test_db_raffle_execution() {
     let mut db = SQLiteInstance::create("./test.db").unwrap();
     let new_raffle = db.create_raffle("Test Raffle 2", "Test Description").unwrap();
+    assert!(db.register_partecipant(0, None).unwrap() == RegistrationStatus::NoRaffleOngoing);
     assert!(new_raffle.is_success());
     db.register_partecipant(0, None).unwrap();
     assert_eq!(db.get_referrer_of_user(0).unwrap(), None);
@@ -43,8 +44,7 @@ fn test_db_raffle_execution() {
     
     let usage_count = db.get_raffle_code_by_id(new_code.unique_id).unwrap().unwrap().remaining_uses;
     assert_eq!(usage_count, 8);
-    assert!(db.delete_raffle_code(new_code.unique_id).unwrap());
-    assert!(!db.delete_raffle_code(new_code.unique_id).unwrap());
+    db.delete_raffle_code(new_code.unique_id).unwrap();
     let usage_count = db.get_raffle_code_by_id(new_code.unique_id).unwrap();
     assert_eq!(usage_count, None);
     
