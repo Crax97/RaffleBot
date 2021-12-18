@@ -12,7 +12,7 @@ mod commands;
 mod utils;
 
 use commands::*;
-use userdb::{db_instances::sqlite_instance::SQLiteInstance, db::RaffleDB};
+use userdb::db_instances::sqlite_instance::SQLiteInstance;
 
 use async_mutex::Mutex;
 use teloxide::{prelude::*, 
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 lazy_static! {
-    pub static ref db_instance : Mutex<SQLiteInstance> = Mutex::new(SQLiteInstance::create("raffle_db.db")
+    pub static ref DB_INSTANCE : Mutex<SQLiteInstance> = Mutex::new(SQLiteInstance::create("raffle_db.db")
                                                 .expect("Failure to open userdb"));
 }
 

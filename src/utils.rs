@@ -1,4 +1,4 @@
-use std::{io::BufReader, collections::HashSet, error::Error};
+use std::{io::BufReader, collections::HashSet};
 
 use serde::Deserialize;
 use teloxide::{types::Chat, Bot, prelude::Requester, adaptors::AutoSend, ApiError, RequestError};
@@ -9,9 +9,6 @@ use lazy_static::lazy_static;
 struct Config {
     manager: UserID,
     target_chat: i64,
-    admin_groups: i64,
-
-    #[serde(skip_deserializing)]
     admin_users: HashSet<i64>
 }
 

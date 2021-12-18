@@ -1,5 +1,4 @@
 mod start;
-mod manager_keyboard;
 mod redeem;
 mod points;
 mod admin;
@@ -9,10 +8,7 @@ use start::*;
 use admin::*;
 use redeem::*;
 use points::*;
-use manager_keyboard::*;
 use teloxide::{prelude::*, utils::command::BotCommand, dispatching::dialogue::{SqliteStorage, serializer::Json, Storage}};
-
-use dialogues::*;
 
 pub type Context = UpdateWithCx<AutoSend<Bot>, Message>;
 type StorageError = <SqliteStorage<Json> as Storage<Dialogue>>::Error;
@@ -35,7 +31,6 @@ pub enum Command {
     Redeem(String),
     GenerateCode(String),
     Points,
-    ManagerKeyboard,
 }
 
 pub async fn handle_action(ctx: Context, command: Command) -> TransitionOut<Dialogue> {
@@ -46,7 +41,6 @@ pub async fn handle_action(ctx: Context, command: Command) -> TransitionOut<Dial
         Command::Leave => leave_cmd(ctx).await,
         Command::Redeem(data) => redeem_code_cmd(data, ctx).await,
         Command::Points => get_points_cdm(ctx).await,
-        Command::ManagerKeyboard => send_manager_keyboard_command(ctx).await,
 
         Command::StartRaffle => create_raffle(ctx).await,
         Command::EndRaffle => end_raffle(ctx).await

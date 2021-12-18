@@ -33,7 +33,7 @@ pub async fn generate_code_cmd(
             CodeUseCount::Counted(n)
         }
     };
-    let mut raffle_db = crate::db_instance.lock().await;
+    let mut raffle_db = crate::DB_INSTANCE.lock().await;
     match raffle_db.generate_raffle_code(usage) {
         Ok(code) => {
             ctx.answer(format!("Ok, i generated a code which can be used {} times.\nThe code is:", code.remaining_uses)).await?;
@@ -61,7 +61,7 @@ pub async fn redeem_code_cmd(
         return next(Dialogue::Begin(NoData));
     }
     let code = {
-        let raffle_db = crate::db_instance.lock().await;
+        let raffle_db = crate::DB_INSTANCE.lock().await;
         raffle_db.get_raffle_code_by_name(code_string.as_str())
     };
     if code.is_err() {
@@ -72,7 +72,7 @@ pub async fn redeem_code_cmd(
     match code {
         Some(code_id) => {
             let result = {
-                let mut raffle_db = crate::db_instance.lock().await;
+                let mut raffle_db = crate::DB_INSTANCE.lock().await;
                 raffle_db.redeem_code(user_id, code_id.unique_id)
             };
             if result.is_err() {

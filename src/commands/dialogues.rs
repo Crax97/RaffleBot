@@ -1,11 +1,11 @@
 use serde::{Serialize, Deserialize};
 use teloxide::{
     prelude::*,
-    adaptors::AutoSend, dispatching::dialogue::{SqliteStorage,serializer::Json, Storage}, prelude::DialogueWithCx,
-    types::Message, Bot,
+    adaptors::AutoSend,
+    Bot,
     macros::{Transition}
 };
-use userdb::db::{Partecipant, UserID};
+use userdb::db::UserID;
 use crate::utils::*;
 use crate::commands::start::*;
 

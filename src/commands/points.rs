@@ -1,5 +1,5 @@
 use teloxide::prelude::*;
-use userdb::db::{RaffleDB, CodeUseCount};
+use userdb::db::RaffleDB;
 use crate::commands::Context;
 use crate::utils::*;
 
@@ -7,11 +7,12 @@ use super::dialogues::*;
 
 pub async fn get_points_cdm(
     ctx: Context) -> TransitionOut<Dialogue> {
-    let from_user = ctx.update.from();
-    if from_user.is_none() {
-        return exit();
-    }
-    let user_id = from_user.unwrap().id;
+    let user_id = match ctx.update.from() {
+        Some(user) => user.id,
+        None => {
+            return next(Dialogue::Begin(NoData));
+        }
+    };
     if is_admin(user_id) {
         // show admin keyboard
         ctx.answer("You can't really have points as an admin...")
@@ -19,7 +20,7 @@ pub async fn get_points_cdm(
         return next(Dialogue::Begin(NoData));
     }
     let partecipant = {
-        let raffle_db = crate::db_instance.lock().await;
+        let raffle_db = crate::DB_INSTANCE.lock().await;
         raffle_db.get_partecipant(user_id)
     };
     let partecipant = match partecipant {
