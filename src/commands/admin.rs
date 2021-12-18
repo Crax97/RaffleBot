@@ -54,10 +54,7 @@ pub async fn create_raffle(ctx: Context)
     };
     let creation_status = match creation_status {
         Err(e) => {
-            ctx.answer(format!("A fatal error occurred while creating the raffle:
-{}
-
-Please send this error to my manager.", e.to_string())).await?;
+            on_error(e, &ctx.update, &ctx.requester, "on raffle creation: begin");
             return next(Dialogue::Begin(NoData));
         },
         Ok(status) => status
@@ -105,10 +102,7 @@ async fn raffle_get_desc_message(
         match raffle_db.create_raffle(state.title.as_str(), message_serialized.as_str()) {
             Ok(status) => status,
             Err(e) => {
-                cx.answer(format!("A fatal error occurred while creating the raffle:
-{}
-
-Please send this error to my manager.", e.to_string())).await?;
+                on_error(e, &cx.update, &cx.requester, "on raffle: await raffle desc");
                 return next(Dialogue::Begin(NoData));
             }
         }
@@ -153,10 +147,7 @@ pub async fn end_raffle(ctx: Context)
         };
         let winners = match winners {
             Err(e) => {
-                ctx.answer(format!("A fatal error occurred while stopping the raffle:
-{}
-
-Please send this error to my manager.", e.to_string())).await?;
+                on_error(e, &ctx.update, &ctx.requester, "on raffle end");
                 return next(Dialogue::Begin(NoData));
             },
             Ok(vector) => vector
@@ -168,10 +159,10 @@ Please send this error to my manager.", e.to_string())).await?;
                 Err(_) => format!("user id {}, ask crax", winner.user_id)
             };
             let place =  i + 1;
-            winner_str = winner_str.add(format!("{}. {}", place, tag).add("\n").as_str());
+            winner_str = winner_str.add(format!("{}. {} - {} point(s)", place, tag, winner.priority).add("\n").as_str());
             let _ = send_winner_notification(place, &winner, &ctx.requester).await; // Best to ignore the error
         }
-        ctx.answer(format!("TODO WINNERS:\n{}", winner_str)).await?;
+        ctx.answer(format!("Okay! Here are the winners i picked for this raffle:\n{}", winner_str)).await?;
         next(Dialogue::AwaitRaffleTitle(AwaitingRaffleTitleState))
 
 }

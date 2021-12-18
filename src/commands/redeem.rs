@@ -40,8 +40,7 @@ pub async fn generate_code_cmd(
             ctx.answer(code.code).await?;
         },
         Err(e) => {
-            ctx.answer(format!("Sorry, something failed while creating the code: {}", e.to_string())).await?;
-            log::info!("While creating raffle code: {:?}", e);
+            on_error(e, &ctx.update, &ctx.requester, "on raffle code reation");
         }
     }
     next(Dialogue::Begin(NoData))

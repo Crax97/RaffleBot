@@ -33,9 +33,7 @@ pub async fn get_points_cdm(
             }
         },
         Err(e) => {
-            ctx.answer("Sorry, please tell my admin a fatal error happened")
-            .await?;
-            log::error!("While getting user points: {}", e.to_string());
+            on_error(e, &ctx.update, &ctx.requester, "on points");
             return next(Dialogue::Begin(NoData));
         }
     };

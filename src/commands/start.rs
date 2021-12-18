@@ -56,10 +56,7 @@ pub async fn start_cmd(
         let ongoing_raffle = match ongoing_raffle {
             Ok(thing) => thing,
             Err(e) => {
-                
-                cx.answer(format!("A fatal error occurred.
-{}
-Please report this error to my manger.", e.to_string())).await?;
+                on_error(e, &cx.update, &cx.requester, "on start: get ongoing raffle");
                 return next(Dialogue::Begin(NoData));
             }
         };
@@ -154,7 +151,7 @@ Type /start to see what you can do as an admin")
     let is_partecipant = match is_partecipant {
             Ok(result) => result, 
             Err(e) => {
-                cx.answer(format!("Sorry! An error occurred while reginstering you into the raffle, please retry again later: \n{}", e.to_string())).await?;
+                on_error(e, &cx.update, &cx.requester, "on registration");
                 return next(Dialogue::Begin(NoData));
             }
         };
@@ -178,7 +175,7 @@ As a partecipant, you can issue the following commands:
                 cx.reply_to("Sorry, there are no ongoing raffles at the moment. Please try again later!").await?;
             }
             Err(e) => {
-                log::error!("While attempting registration: {:?}", e);
+                on_error(e, &cx.update, &cx.requester, "on registration");
             },
             _ => {
                 let me = cx.requester.get_me().await?.user.username.expect("Could not fetch the username of this bot!");
@@ -242,8 +239,7 @@ If you do decide to come back, remember that we will keep all your points.")
                     .await?;
                 }
                 Err(e) => {
-                    cx.answer(format!("Sorry, an error occurred: {}, pass this to my manager.", e.to_string()))
-                    .await?;
+                    on_error(e, &cx.update, &cx.requester, "on leave");
                 }
             }
             next(Dialogue::Begin(NoData))

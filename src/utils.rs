@@ -1,7 +1,7 @@
-use std::{io::BufReader, collections::HashSet};
+use std::{io::BufReader, collections::HashSet, error::Error};
 
 use serde::Deserialize;
-use teloxide::{types::Chat, Bot, prelude::Requester, adaptors::AutoSend, ApiError, RequestError};
+use teloxide::{types::{Chat, Message}, Bot, prelude::Requester, adaptors::AutoSend, ApiError, RequestError};
 use userdb::db::UserID;
 use lazy_static::lazy_static;
 
@@ -72,4 +72,30 @@ pub async fn is_member_of_target_group(user_id: UserID, bot: &AutoSend<Bot>) -> 
             _ => Err(e)
         }
     }
+}
+
+pub async fn on_error(err: dyn Error, msg: &Message, bot: &AutoSend<Bot>, user_err: &str) {
+    // Inform the user that an error occurred, ONLY IN PRIVATE CHAT (to avoid possible spamming)
+    let chat = msg.chat;
+    if chat.is_private() {
+        let _ = bot.send_message(chat.id, "Sorry! While processing your message an error has occurred, i'm signaling it to the bot manager.")
+        .await;
+    }
+    // Try to signal the error at the manager
+    let error_message = format!("
+<b>An error occurred: {}</b>
+
+Error details:
+{}
+
+Message that caused the error:
+{}
+
+", user_err, msg, err.to_string());
+    let _ = bot.send_message(CONFIG.manager, &error_message).await;
+    log::error!("
+---- ERROR -------
+{}
+---- ERROR END ---
+", error_message)
 }
