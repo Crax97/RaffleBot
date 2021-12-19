@@ -12,11 +12,13 @@ mod commands;
 mod utils;
 
 use commands::*;
+use std::sync::Arc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use userdb::db_instances::sqlite_instance::SQLiteInstance;
 
 use async_mutex::Mutex;
 use teloxide::{prelude::*, 
-    dispatching::dialogue::{SqliteStorage, serializer::Json},
+    dispatching::dialogue::{SqliteStorage, serializer::Json, Storage},
     utils::command::BotCommand
     };
 use lazy_static::lazy_static;
@@ -54,6 +56,43 @@ pub async fn handle_dialogue(ctx: UpdateWithCx<RaffleBot, Message>, dialogue: Di
         },
     }
 }
+
+async fn handle<S : Storage<Dialogue>>(upd: UpdateWithCx<RaffleBot, Message>, storage: Arc<S>)
+    where <S as Storage<Dialogue>>::Error: std::fmt::Debug {
+    let chat_id = upd.update.chat.id;
+    let dialogue: Result<Option<Dialogue>, _> = storage.clone().get_dialogue(upd.update.chat.id).await;
+    let dialogue = match dialogue {
+        Ok(some_dialogue) => match some_dialogue {
+            Some(d) => d,
+            None => Dialogue::default()
+        },
+        Err(e) => {
+            log::error!("While reading dialogue for {}: {:?}", upd.update.chat.id, e);
+            Dialogue::default()
+        }
+    };
+
+    let result: Result<(), _> = match handle_dialogue(upd, dialogue).await {
+        Ok(DialogueStage::Next(stage)) => 
+            storage.update_dialogue(chat_id, stage).await,
+        
+        Ok(DialogueStage::Exit) => {
+            storage.remove_dialogue(chat_id).await
+        }
+        Err(e) => {
+            log::error!("While executing dialogue handler: {0}", e.to_string());
+            Ok(())
+        }
+    };
+
+    match result {
+        Ok(_) => {}
+        Err(err) => {
+            log::error!("While updating dialogue: {:?}", err);
+        }
+    }
+}
+
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     teloxide::enable_logging!();
     
@@ -67,15 +106,26 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let my_name = me.user.username.expect("Bots must have an username");
     log::info!("Got bot with username {}", my_name);
 
+    let storage : Arc<SqliteStorage<Json>> = SqliteStorage::open("dialogues.db", Json).await.expect("Could not open dialgoue storage");
     Dispatcher::new(bot)
         .setup_ctrlc_handler()
-        .messages_handler(DialogueDispatcher::with_storage(|DialogueWithCx{cx,dialogue} : RaffleDialogueContext| async move {
-            let dialogue = dialogue.expect("No dialogue");
-            handle_dialogue(cx, dialogue).await.expect("Something bad happened")
-        },
-        SqliteStorage::open("dialogues.db", Json).await.unwrap()
-        ))
-        .dispatch() 
+        .messages_handler(|rx: DispatcherHandlerRx<RaffleBot, Message>| async move {
+            UnboundedReceiverStream::new(rx)
+            .filter(|upd| {
+                let is_private = upd.update.chat.is_private();
+                async move {
+                    is_private
+                }
+            })
+            .map(move |upd| {
+                (upd, storage.clone())
+            })
+            .for_each_concurrent(None, |(upd, storage)| async move {
+                handle(upd, storage.clone()).await;
+            }).await;
+            
+        })
+        .dispatch()
         .await;
         Ok(())
 }

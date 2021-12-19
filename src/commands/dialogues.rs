@@ -46,10 +46,9 @@ impl Default for Dialogue {
 #[teloxide(subtransition)]
 async fn no_data(
     state: NoData,
-    cx: TransitionIn<RaffleBot>,
+    _cx: TransitionIn<RaffleBot>,
     _ans: String
 ) -> TransitionOut<Dialogue> {
-    cx.answer("Is this some text?").await?;
     next(state)
 }
 

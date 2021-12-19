@@ -8,13 +8,10 @@ use start::*;
 use admin::*;
 use redeem::*;
 use points::*;
-use teloxide::{prelude::*, utils::command::BotCommand, dispatching::dialogue::{SqliteStorage, serializer::Json, Storage}, adaptors::CacheMe};
+use teloxide::{prelude::*, utils::command::BotCommand, adaptors::CacheMe};
 
 pub type RaffleBot = AutoSend<CacheMe<Bot>>;
 pub type Context = UpdateWithCx<RaffleBot, Message>;
-
-type StorageError = <SqliteStorage<Json> as Storage<Dialogue>>::Error;
-pub type RaffleDialogueContext = DialogueWithCx<RaffleBot, Message, Dialogue, StorageError>;
 
 pub use dialogues::Dialogue;
 
@@ -28,6 +25,7 @@ pub enum Command {
     Start(StartData),
     StartRaffle,
     EndRaffle,
+    Stats,
     Join(StartData),
     Leave,
     Redeem(String),
@@ -43,6 +41,7 @@ pub async fn handle_action(ctx: Context, command: Command) -> TransitionOut<Dial
         Command::Leave => leave_cmd(ctx).await,
         Command::Redeem(data) => redeem_code_cmd(data, ctx).await,
         Command::Points => get_points_cdm(ctx).await,
+        Command::Stats => stats(ctx).await,
 
         Command::StartRaffle => create_raffle(ctx).await,
         Command::EndRaffle => end_raffle(ctx).await

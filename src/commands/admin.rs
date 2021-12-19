@@ -1,6 +1,7 @@
 use std::ops::Add;
 
 use serde::{Deserialize, Serialize};
+use teloxide::types::ParseMode;
 use teloxide::{prelude::*, RequestError};
 use userdb::db::{RaffleDB, Partecipant};
 use super::{dialogues::*, RaffleBot};
@@ -33,6 +34,55 @@ impl RaffleDescription {
             _ => unreachable!()
         }
     }
+}
+
+
+
+pub async fn stats(ctx: Context)
+    -> TransitionOut<Dialogue> {
+        let user = match ctx.update.from() {
+            Some(u) => u.id,
+            None => { 
+                return next(Dialogue::Begin(NoData));
+            }
+        };
+        if !is_admin(user) {
+            ctx.answer("You must be an admin to run this command.").await?;
+            return next(Dialogue::Begin(NoData));
+        }
+
+        let partecipants = {
+            let raffle_db = crate::DB_INSTANCE.lock().await;
+            raffle_db.get_partecipants()
+        };
+        let mut partecipants = match partecipants {
+            Ok(partecipants) => Vec::from_iter(partecipants.iter().map(|p| p.clone())),
+            Err(e) => {
+                on_error(e, &ctx.update, &ctx.requester, "stats: fetch partecipants").await;
+                return next(Dialogue::Begin(NoData));
+            }
+        };
+        partecipants.sort_by(|a, b|  b.priority.cmp(&a.priority));
+
+        let count_partecipants = partecipants.len();
+        let top_ten= partecipants.iter().take(10);
+
+        let mut msg = String::default();
+        for (i, part) in top_ten.enumerate() {
+            let tag = match get_user_tag(part.user_id, target_chat(), &ctx.requester).await {
+                Ok(n) => n,
+                Err(_) => format!("user id {}, ask crax", part.user_id)
+            };
+            let place =  i + 1;
+            msg = msg.add(format!("{}. {} - {} point(s)", place, tag, part.priority).add("\n").as_str());
+        }
+
+        let msg = format!("<b>Top ten:</b>\n{}\n\n<b>Raffle stats:</b>\nNumber of partecipants: {}", msg, count_partecipants);
+        ctx.answer(msg)
+            .parse_mode(ParseMode::Html)
+            .await?;
+
+        next(Dialogue::Begin(NoData))
 }
 
 pub async fn create_raffle(ctx: Context)

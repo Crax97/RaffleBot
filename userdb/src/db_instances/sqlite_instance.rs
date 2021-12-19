@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::error::Error;
 use std::ops::Add;
 use rand::Rng;
 use rusqlite::{Connection, Result, params};
@@ -176,10 +177,12 @@ impl RaffleDB for SQLiteInstance {
                 Ok(winners)
             } else {
                 transaction.rollback().unwrap();
-                todo!()
+                let err: Box::<dyn Error + Send + Sync> = "No raffles were closed?".to_string().into();
+                Err(err)
             }
         } else {
-            todo!()
+            let err: Box::<dyn Error + Send + Sync> = "No running raffles".to_string().into();
+            Err(err)
         }
     }
 

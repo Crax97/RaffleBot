@@ -1,7 +1,7 @@
 use std::{str::FromStr};
 use serde::{Serialize, Deserialize};
-use teloxide::prelude::*;
-use teloxide::types::InputFile;
+use teloxide::{prelude::*, payloads::SendMessageSetters};
+use teloxide::types::{InputFile, ParseMode};
 use userdb::db::{UserID, RaffleDB, RegistrationStatus};
 
 use crate::commands::admin::RaffleDescription;
@@ -138,8 +138,11 @@ Type /start to see what you can do as an admin")
         .await?;
         return next(Dialogue::Begin(NoData));
     }
-    if !is_member_of_target_group(user_id, &cx.requester).await? {     
-        cx.answer("Please join the @@@TARGET_CHANNEL_NAME@@@ chat before trying to join the raffle.").await?;
+    if !is_member_of_target_group(user_id, &cx.requester).await? {
+        let join_link = generate_invite_for_target_chat(&cx.requester).await?;
+        cx.answer(format!("Please join {} before trying to join the raffle.", join_link))
+            .parse_mode(ParseMode::Html)
+            .await?;
         return next(Dialogue::AwaitingJoinChannel(AwaitingJoinChannelState{
             referrer
         }));

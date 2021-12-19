@@ -1,7 +1,8 @@
 use std::{io::BufReader, collections::HashSet, error::Error};
+use async_mutex::Mutex;
 
 use serde::Deserialize;
-use teloxide::{types::{Chat, Message}, prelude::Requester, ApiError, RequestError};
+use teloxide::{types::{Chat, Message, ChatKind, ChatPublic}, prelude::Requester, ApiError, RequestError};
 use userdb::db::UserID;
 use lazy_static::lazy_static;
 
@@ -35,6 +36,35 @@ pub fn is_admin(user_id: UserID) -> bool {
 
 pub fn is_manager(user_id: UserID) -> bool {
     user_id == CONFIG.manager
+}
+
+pub async fn get_target_chat(bot: &RaffleBot) -> Result<Chat,RequestError> {
+    lazy_static! {
+        static ref CHAT: Mutex<Vec<Chat>> = Mutex::new(vec![]);
+    };
+    let mut chat_mutex = CHAT.lock().await;
+    let cached_chat = chat_mutex.get(0);
+    Ok(match cached_chat {
+        Some(chat) => chat.clone(),
+        None => {
+            let chat_from_bot = bot.get_chat(target_chat()).await?;
+            chat_mutex.push(chat_from_bot.clone());
+            chat_from_bot
+        }
+    })
+}
+
+pub async fn generate_invite_for_target_chat(bot: &RaffleBot) -> Result<String, RequestError> {
+    let chat = get_target_chat(&bot).await?;
+    let invite_link = match chat.invite_link() {
+        Some(link) => link.to_owned(),
+        None => format!("https://t.me/{}", chat.id)
+    };
+    let chat_fullname = match chat.kind {
+        ChatKind::Public(ChatPublic{title, .. }) => title.unwrap_or("A chat without a title?".to_owned()),
+        ChatKind::Private(_) => format!("https://t.me/user?id={}", chat.id)
+    };
+    Ok(format!("<a href=\"{0}\">{1}</a>", invite_link, chat_fullname))
 }
 
 pub fn is_chat_with_manager(user_id: UserID, chat: &Chat) -> bool {
