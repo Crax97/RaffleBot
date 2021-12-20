@@ -342,7 +342,6 @@ impl RaffleDB for SQLiteInstance {
                 let redeem_transaction = self.connection
                     .transaction()?;
                 {
-                    println!("CODE {} USER {}", code_id, user_id);
                     let mut insert_query =
                     redeem_transaction.prepare_cached("INSERT INTO USED_CODES (user_id, code_id, used_when)
                         VALUES (?1, ?2, ?3)").unwrap();
