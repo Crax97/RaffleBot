@@ -93,8 +93,6 @@ pub async fn redeem_code_cmd(
                     cx.answer("Sorry, it looks like this code does not exist.").await?;
                 },
             }
-            cx.reply_to("Welcome to this raffle! You gained one point for joining, use /redeem to redeem additional codes and /points to see your points!").await?;
-            cx.answer("PLACE REFERRAL LINK HERE").await?;
         },
         None => {
             cx.reply_to("Sorry, code not found. be sure to have written it correctly").await?;

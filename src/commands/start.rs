@@ -183,8 +183,13 @@ As a partecipant, you can issue the following commands:
             _ => {
                 let me = cx.requester.get_me().await?.user.username.expect("Could not fetch the username of this bot!");
                 let referral = make_referral_link(me, user_id);
-                cx.reply_to("Welcome to this raffle! You gained one point for joining, use /redeem to redeem additional codes and /points to see your points!
-Below you will find a referral link you can share with other people, if they join you will get an additional point").await?;
+                cx.reply_to("<b>Welcome to this raffle!</b>
+                
+You gained one point for joining, use /redeem to redeem additional codes and /points to see your points!
+
+<b>Below you will find a referral link you can share with other people</b>: if they join using your link you will gain an additional point")
+                .parse_mode(ParseMode::Html)
+                .await?;
                 cx.answer(referral).await?;
             }
         }
